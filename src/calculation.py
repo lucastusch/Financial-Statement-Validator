@@ -696,6 +696,134 @@ class FinancialStatementAuditor:
         print()
 
 
+class TrendAnalysis:
+    """
+    Compares the parsed company to parsed industry benchmarks with following ratios:
+    1) Profitability Ratios:
+       - Gross Profit Margin
+       - Operating Profit Margin (EBIT Margin)
+       - Net Profit Margin
+       - Return on Assets (ROA)
+       - Return on Equity (ROE)
+    2) Liquidity Ratios
+       - Current Ratio
+       - Quick Ratio
+    3) Leverage (Solvency) Ratios
+       - Debt-to-Equity Ratio
+       - Interest Coverage Ratio
+    4) Efficiency Ratios
+       - Asset Turnover Ratio
+    """
+
+    def __init__(self, industry_benchmarks: dict, company_ratios: dict | None = None,
+                 company_financial_statement: dict | None = None):
+        self.industry_benchmarks = industry_benchmarks
+        self.company_ratios = company_ratios
+        self.company_financial_statement = company_financial_statement
+
+    def calculate_ratios_from_statements(self) -> dict:
+        """
+        Calculate all financial ratios from a single company's financial statement
+        """
+        # Extract statements from the financial statement dict
+        balance_sheet = self.company_financial_statement.get('balance_sheet', {})
+        income_statement = self.company_financial_statement.get('income_statement', {})
+        cash_flow = self.company_financial_statement.get('cash_flow', {})
+
+        # Extract values from balance sheet
+        current_assets = balance_sheet.get('assets', {}).get('current_assets', 0)
+        inventory = balance_sheet.get('assets', {}).get('inventory', 0)
+        non_current_assets = balance_sheet.get('assets', {}).get('non_current_assets', 0)
+        total_assets = current_assets + non_current_assets
+
+        current_liabilities = balance_sheet.get('liabilities', {}).get('current_liabilities', 0)
+        short_term_debt = balance_sheet.get('liabilities', {}).get('short_term_debt', 0)
+        non_current_liabilities = balance_sheet.get('liabilities', {}).get('non_current_liabilities', 0)
+        long_term_debt = balance_sheet.get('liabilities', {}).get('long_term_debt', 0)
+        total_debt = short_term_debt + long_term_debt
+
+        common_stock = balance_sheet.get('equity', {}).get('common_stock', 0)
+        retained_earnings = balance_sheet.get('equity', {}).get('retained_earnings', 0)
+        total_equity = common_stock + retained_earnings
+
+        # Extract values from income statement
+        revenue = income_statement.get('revenue', 0)
+        gross_profit = income_statement.get('gross_profit', 0)
+        operating_income = income_statement.get('operating_income', 0)
+        net_income = income_statement.get('net_income', 0)
+        interest_expense = income_statement.get('interest_expense', 0)
+
+        # Calculate profitability ratios
+        gross_profit_margin = (gross_profit / revenue * 100) if revenue > 0 else 0
+        operating_profit_margin = (operating_income / revenue * 100) if revenue > 0 else 0
+        net_profit_margin = (net_income / revenue * 100) if revenue > 0 else 0
+        roa = (net_income / total_assets * 100) if total_assets > 0 else 0
+        roe = (net_income / total_equity * 100) if total_equity > 0 else 0
+
+        # Calculate liquidity ratios
+        current_ratio = (current_assets / current_liabilities) if current_liabilities > 0 else 0
+        quick_ratio = ((current_assets - inventory) / current_liabilities) if current_liabilities > 0 else 0
+
+        # Calculate leverage ratios
+        debt_to_equity = (total_debt / total_equity) if total_equity > 0 else 0
+        interest_coverage = (operating_income / interest_expense) if interest_expense > 0 else 0
+
+        # Calculate efficiency ratios
+        asset_turnover = (revenue / total_assets) if total_assets > 0 else 0
+
+        self.company_ratios = {
+            'profitability_ratios': {
+                'gross_profit_margin': round(gross_profit_margin, 2),
+                'operating_profit_margin': round(operating_profit_margin, 2),
+                'net_profit_margin': round(net_profit_margin, 2),
+                'roa': round(roa, 2),
+                'roe': round(roe, 2),
+            },
+            'liquidity_ratios': {
+                'current_ratio': round(current_ratio, 4),
+                'quick_ratio': round(quick_ratio, 4),
+            },
+            'leverage_ratios': {
+                'debt_to_equity': round(debt_to_equity, 4),
+                'interest_coverage': round(interest_coverage, 4),
+            },
+            'efficiency_ratios': {
+                'asset_turnover': round(asset_turnover, 4),
+            }
+        }
+
+        return self.company_ratios
+
+    def calculate_variance(self) -> dict:
+        """
+        Calculate variance between company and benchmark values
+        """
+        variance = {}
+
+        # all categories
+        for category in self.industry_benchmarks.keys():
+            variance[category] = {}
+
+            # all ratios in each category
+            for ratio_key in self.industry_benchmarks[category].keys():
+                company_val = self.company_ratios[category].get(ratio_key, 0)
+                benchmark_val = self.industry_benchmarks[category].get(ratio_key, 0)
+
+                absolute_diff = company_val - benchmark_val
+
+                if benchmark_val != 0:
+                    percent_diff = (absolute_diff / benchmark_val) * 100
+                else:
+                    percent_diff = 0
+
+                variance[category][ratio_key] = {
+                    'absolute_difference': round(absolute_diff, 4),
+                    'percent_difference': round(percent_diff, 2)
+                }
+
+        return variance
+
+
 class Benford:
     """
     Benford's Law states that in many naturally occurring datasets, the leading digit is likely to be small
@@ -749,7 +877,8 @@ class Benford:
         mad = sum(deviations) / len(deviations)
         return mad
 
-    def analyze(self, transactions: dict[int, type[int, float]]) -> tuple[dict[int, dict[str, type[int, float]]], float]:
+    def analyze(self, transactions: dict[int, type[int, float]]) -> tuple[
+        dict[int, dict[str, type[int, float]]], float]:
         # Count first digits
         digit_counts = self._count_first_digits(transactions)
         total_transactions = sum(digit_counts.values())

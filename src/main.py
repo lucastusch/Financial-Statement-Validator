@@ -1,10 +1,53 @@
 # Done: make 3 financial statements randomly generate
-# TODO: make industry trend (comparison) analysis
+# Done: make industry trend (comparison) analysis
+# TODO: visualisation, proper data processing
 
 
 import random
 
-from calculation import FinancialStatementAuditor, Benford
+from calculation import FinancialStatementAuditor, TrendAnalysis, Benford
+
+company_ratios = {
+    'profitability_ratios': {
+        'gross_profit_margin': 42.5,
+        'operating_profit_margin': 18.3,
+        'net_profit_margin': 12.1,
+        'roa': 8.5,
+        'roe': 16.2
+    },
+    'liquidity_ratios': {
+        'current_ratio': 2.1,
+        'quick_ratio': 1.3
+    },
+    'leverage_ratios': {
+        'debt_to_equity': 0.85,
+        'interest_coverage': 5.2
+    },
+    'efficiency_ratios': {
+        'asset_turnover': 1.8
+    }
+}
+
+industry_benchmarks = {
+    'profitability_ratios': {
+        'gross_profit_margin': 38.0,
+        'operating_profit_margin': 15.5,
+        'net_profit_margin': 10.0,
+        'roa': 7.2,
+        'roe': 14.5
+    },
+    'liquidity_ratios': {
+        'current_ratio': 1.9,
+        'quick_ratio': 1.1
+    },
+    'leverage_ratios': {
+        'debt_to_equity': 0.95,
+        'interest_coverage': 4.5
+    },
+    'efficiency_ratios': {
+        'asset_turnover': 1.6
+    }
+}
 
 
 def generate_financial_statements(amount: int = 1, is_balanced: bool = None) -> dict[str, list]:
@@ -186,25 +229,54 @@ def generate_benford_transactions(n: int) -> dict[int, float]:
     return transactions
 
 
+def display_dict(d: dict, i: int = 0) -> None:
+    for key, value in d.items():
+        if isinstance(value, dict):
+            print("  - " * i + str(key) + ":")
+            display_dict(value, i + 1)
+        else:
+            print("    " * i + str(key) + ": " + str(value))
+
+
 def main():
     random.seed(100)
 
     # ===== AUDIT =====
-
+    # --- Financial Statement Check ---
+    print("\n" + "=" * 100 + "\n")
     financial_statements: dict = generate_financial_statements(amount=5)
+    fs_for_benchmarkanalysis = {
+        'balance_sheet': financial_statements['balance_sheets'][0],
+        'income_statement': financial_statements['income_statements'][0],
+        'cash_flow': financial_statements['cash_flows'][0]
+    }
 
     for ele in range(len(financial_statements['balance_sheets'])):
         balance_sheet = financial_statements['balance_sheets'][ele]
         income_statement = financial_statements['income_statements'][ele]
         cash_flow = financial_statements['cash_flows'][ele]
 
-        auditor = FinancialStatementAuditor(balance_sheet=balance_sheet, income_statement=income_statement, cash_flow=cash_flow)
+        auditor = FinancialStatementAuditor(
+            balance_sheet=balance_sheet,
+            income_statement=income_statement,
+            cash_flow=cash_flow)
         audit_report = auditor.run_all_audits()
 
         print(f"Audit results: {audit_report}")
 
-    # ===== BENFORD =====
+    # --- Compare Financial Statement To Industry Benchmarks ---
+    print("\n" + "=" * 100 + "\n")
+    analysis = TrendAnalysis(industry_benchmarks=industry_benchmarks,
+                             company_financial_statement=fs_for_benchmarkanalysis)
+    company_ratios_test = analysis.calculate_ratios_from_statements()
+    trend_report = analysis.calculate_variance()
 
+    display_dict(company_ratios_test)
+    print("\n" + "=" * 100 + "\n")
+    display_dict(trend_report)
+
+    # ===== BENFORD =====
+    print("\n" + "=" * 100 + "\n")
     test_transactions = generate_benford_transactions(n=1000)
 
     benford = Benford()
