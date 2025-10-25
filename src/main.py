@@ -1,58 +1,153 @@
+# Done: make 3 financial statements randomly generate
+# TODO: make industry trend (comparison) analysis
+
+
 import random
 
 from calculation import FinancialStatementAuditor, Benford
 
-balance_sheet: dict = {
-    'assets': {
-        'current_assets': 450000,  # Cash, AR, Inventory
-        'cash': 75000,
-        'accounts_receivable': 125000,
-        'inventory': 250000,
-        'non_current_assets': 850000,  # PP&E, Intangibles
-        'property_plant_equipment': 800000,
-        'accumulated_depreciation': -150000,
-        'intangible_assets': 200000,
-    },
-    'liabilities': {
-        'current_liabilities': 300000,
-        'accounts_payable': 150000,
-        'short_term_debt': 100000,
-        'accrued_expenses': 50000,
-        'non_current_liabilities': 400000,
-        'long_term_debt': 400000,
-    },
-    'equity': {
-        'common_stock': 250000,
-        'retained_earnings': 350000,
-    }
-}
 
-income_statement: dict = {
-    'revenue': 2500000,
-    'cost_of_goods_sold': 1500000,
-    'gross_profit': 1000000,
-    'operating_expenses': 600000,
-    'operating_income': 400000,
-    'interest_expense': 30000,
-    'income_before_tax': 370000,
-    'income_tax_expense': 92500,
-    'net_income': 277500,
-    'dividends_paid': 50000,
-    'prior_year_revenue': 2200000,
-}
+def generate_financial_statements(amount: int = 1, is_balanced: bool = None) -> dict[str, list]:
+    balance_sheets: list = []
+    income_statements: list = []
+    cash_flows: list = []
 
-cash_flow: dict = {
-    'operating_activities': 320000,  # Should be close to NI
-    'investing_activities': -150000,  # CapEx, acquisitions
-    'financing_activities': 50000,  # Debt/equity changes
-}
+    for i in range(amount):
+        if is_balanced is None:
+            current_is_balanced: bool = random.choice([True, False])
+        else:
+            current_is_balanced: bool = is_balanced
+
+        # ===== GENERATE INCOME STATEMENT =====
+        revenue = random.randint(1500000, 4000000)
+        cost_of_goods_sold = int(revenue * random.uniform(0.50, 0.65))
+        gross_profit = revenue - cost_of_goods_sold
+
+        operating_expenses = int(revenue * random.uniform(0.15, 0.30))
+        operating_income = gross_profit - operating_expenses
+
+        interest_expense = random.randint(20000, 80000)
+        income_before_tax = operating_income - interest_expense
+
+        tax_rate: float = random.uniform(0.20, 0.30)
+        income_tax_expense = int(income_before_tax * tax_rate) if income_before_tax > 0 else 0
+        net_income = income_before_tax - income_tax_expense
+
+        dividends_paid = int(net_income * random.uniform(0.10, 0.30)) if net_income > 0 else 0
+        prior_year_revenue = int(revenue * random.uniform(0.80, 0.95))
+
+        income_statement: dict[str, int] = {
+            'revenue': revenue,
+            'cost_of_goods_sold': cost_of_goods_sold,
+            'gross_profit': gross_profit,
+            'operating_expenses': operating_expenses,
+            'operating_income': operating_income,
+            'interest_expense': interest_expense,
+            'income_before_tax': income_before_tax,
+            'income_tax_expense': income_tax_expense,
+            'net_income': net_income,
+            'dividends_paid': dividends_paid,
+            'prior_year_revenue': prior_year_revenue,
+        }
+
+        # ===== GENERATE BALANCE SHEET =====
+        cash = random.randint(50000, 200000)
+        accounts_receivable = random.randint(80000, 300000)
+        inventory = random.randint(100000, 400000)
+        current_assets = cash + accounts_receivable + inventory
+
+        property_plant_equipment = random.randint(500000, 1500000)
+        accumulated_depreciation = -random.randint(100000, 400000)
+        intangible_assets = random.randint(50000, 300000)
+        non_current_assets = property_plant_equipment + accumulated_depreciation + intangible_assets
+
+        total_assets = current_assets + non_current_assets
+
+        accounts_payable = random.randint(80000, 250000)
+        short_term_debt = random.randint(50000, 200000)
+        accrued_expenses = random.randint(30000, 100000)
+        current_liabilities = accounts_payable + short_term_debt + accrued_expenses
+
+        long_term_debt = random.randint(200000, 800000)
+        non_current_liabilities = long_term_debt
+
+        total_liabilities = current_liabilities + non_current_liabilities
+
+        # Generate equity
+        if current_is_balanced:
+            total_equity = total_assets - total_liabilities
+
+            if total_equity > 0:
+                max_common_stock = int(total_equity * 0.4)
+                min_common_stock = int(total_equity * 0.2)
+                if min_common_stock < max_common_stock:
+                    common_stock = random.randint(min_common_stock, max_common_stock)
+                else:
+                    common_stock = min_common_stock
+                retained_earnings = total_equity - common_stock
+            else:
+                common_stock = random.randint(100000, 300000)
+                retained_earnings = total_equity - common_stock
+        else:
+            common_stock = random.randint(100000, 300000)
+            retained_earnings = random.randint(100000, 500000)
+            error_amount = random.randint(10000, 100000) * random.choice([-1, 1])
+            retained_earnings += error_amount
+
+        balance_sheet: dict[str, dict[str, int]] = {
+            'assets': {
+                'current_assets': current_assets,
+                'cash': cash,
+                'accounts_receivable': accounts_receivable,
+                'inventory': inventory,
+                'non_current_assets': non_current_assets,
+                'property_plant_equipment': property_plant_equipment,
+                'accumulated_depreciation': accumulated_depreciation,
+                'intangible_assets': intangible_assets,
+            },
+            'liabilities': {
+                'current_liabilities': current_liabilities,
+                'accounts_payable': accounts_payable,
+                'short_term_debt': short_term_debt,
+                'accrued_expenses': accrued_expenses,
+                'non_current_liabilities': non_current_liabilities,
+                'long_term_debt': long_term_debt,
+            },
+            'equity': {
+                'common_stock': common_stock,
+                'retained_earnings': retained_earnings,
+            }
+        }
+
+        # ==== GENERATE CASH FLOW STATEMENT ====
+        # Operating activities should be related to net income
+        operating_activities = int(net_income * random.uniform(0.90, 1.30))
+
+        # Investing activities (usually negative - capital expenditures)
+        investing_activities = -random.randint(100000, 300000)
+
+        # Financing activities (debt/equity changes, dividends)
+        financing_base = random.randint(-100000, 200000)
+        financing_activities = financing_base - dividends_paid
+
+        cash_flow: dict[str, int] = {
+            'operating_activities': operating_activities,
+            'investing_activities': investing_activities,
+            'financing_activities': financing_activities,
+        }
+
+        balance_sheets.append(balance_sheet)
+        income_statements.append(income_statement)
+        cash_flows.append(cash_flow)
+
+    return {'balance_sheets': balance_sheets, 'income_statements': income_statements, 'cash_flows': cash_flows}
 
 
-def generate_benford_transactions(n: int):
+def generate_benford_transactions(n: int) -> dict[int, float]:
     """
     Generate realistic transaction amounts that roughly follow Benford's Law.
     """
-    transactions = {}
+    transactions: dict = {}
 
     for i in range(1, n + 1):
         # Use power law distribution which naturally follows Benford
@@ -92,15 +187,26 @@ def generate_benford_transactions(n: int):
 
 
 def main():
-    auditor = FinancialStatementAuditor(balance_sheet, income_statement, cash_flow)
-    audit_report = auditor.run_all_audits()
-
-    print(f"Audit results: {audit_report}\n")
-
     random.seed(100)
+
+    # ===== AUDIT =====
+
+    financial_statements: dict = generate_financial_statements(amount=5)
+
+    for ele in range(len(financial_statements['balance_sheets'])):
+        balance_sheet = financial_statements['balance_sheets'][ele]
+        income_statement = financial_statements['income_statements'][ele]
+        cash_flow = financial_statements['cash_flows'][ele]
+
+        auditor = FinancialStatementAuditor(balance_sheet=balance_sheet, income_statement=income_statement, cash_flow=cash_flow)
+        audit_report = auditor.run_all_audits()
+
+        print(f"Audit results: {audit_report}")
+
+    # ===== BENFORD =====
+
     test_transactions = generate_benford_transactions(n=1000)
 
-    # Test with Benford class
     benford = Benford()
     results, mad = benford.analyze(test_transactions)
     interpretation: str = benford.interpret_mad(mad)
