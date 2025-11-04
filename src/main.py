@@ -1,11 +1,7 @@
-# Done: make 3 financial statements randomly generate
-# Done: make industry trend (comparison) analysis
-# TODO: visualisation, proper data processing
-
-
 import random
 
 from calculation import FinancialStatementAuditor, TrendAnalysis, Benford
+from visualisation import BenfordVisualisation
 
 company_ratios = {
     'profitability_ratios': {
@@ -285,6 +281,9 @@ def main():
 
     print(f"Benford results: {results}")
     print(f"Mad: {mad}, {interpretation}")
+
+    vis = BenfordVisualisation(results, mad, interpretation)
+    vis.display()
 
 
 if __name__ == '__main__':
