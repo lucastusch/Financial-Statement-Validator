@@ -31,7 +31,7 @@ This tool audits financial statements by checking if they mathematically make se
 ### Installation
 
 ```bash
-pip install -r requirements-minimal.txt
+pip install -r requirements
 ```
 
 ## Output
